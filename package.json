@@ -1,0 +1,34 @@
+{
+  "name": "campanhas_backend",
+  "version": "1.0.0",
+  "description": "",
+  "main": "server.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1",
+    "start": "nodemon server.js"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/FranciscMatheus/campanhas_backend.git"
+  },
+  "keywords": [],
+  "author": "Francisco Matheus",
+  "license": "ISC",
+  "bugs": {
+    "url": "https://github.com/FranciscMatheus/campanhas_backend/issues"
+  },
+  "homepage": "https://github.com/FranciscMatheus/campanhas_backend#readme",
+  "dependencies": {
+    "axios": "^0.26.0",
+    "body-parser": "^1.19.1",
+    "config": "^3.3.7",
+    "express": "^4.17.2",
+    "morgan": "^1.10.0",
+    "sequelize": "^6.16.1",
+    "uuidv4": "^6.2.12",
+    "validar-telefone": "^0.1.0"
+  },
+  "devDependencies": {
+    "nodemon": "^2.0.15"
+  }
+}

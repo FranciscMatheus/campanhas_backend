@@ -1,0 +1,12 @@
+{
+    "diamantes": {
+        "host":"dbexp.vcenter.com.br",
+        "user":"diamantes_ro",
+        "password":"!vQv0kFz#GJ0#9d@",
+        "database":"diamantes",
+        "port":"20253"
+    },
+    "api":{
+        "porta":3000
+    }
+}
