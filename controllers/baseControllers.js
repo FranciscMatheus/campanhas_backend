@@ -20,11 +20,17 @@ exports.appcampanhasBitrixWhats = async (req, res, next) => {
 
     for (let i = 0; i < wpp_primeira_compra.length; i++) {
         const cli = {
-            cpf: wpp_primeira_compra[i].cpf.trim(),
-            campanha: wpp_primeira_compra[i].campanha,
-            telefone:formataTel55(padraoTel(wpp_primeira_compra[i].telefone)),
-            tempo: 0,
-            mensagemEnviada: 'não'
+            // cpf: wpp_primeira_compra[i].cpf.trim(),
+            // campanha: wpp_primeira_compra[i].campanha,
+            // telefone:formataTel55(padraoTel(wpp_primeira_compra[i].telefone)),
+            // tempo: 0,
+            // mensagemEnviada: 'não'
+            
+                cpf: '03983666329',
+                campanha: 'Tempo de Cadastro 6 years',
+                telefone: '+5588992067851',
+                tempo: 0,
+                mensagemEnviada: 'não'
         };
         msgs.push(cli);
     }
@@ -64,14 +70,13 @@ exports.appcampanhasBitrixWhats = async (req, res, next) => {
 
     if (msgs.length > 0) {
         console.log('Enviando a Lista....', msgs.length);
-        console.log(msgs.telefone[0]);
-        VerificarTelefone(msgs.telefone[0])
-        // let mensg = await sendListaCampanha(msgs, 1, msgs.length);
-        // console.log('Aguardando o envio....', mensg.length);
-        // console.log(mensg);
-        // if (mensg.length > 0) {
-        //     backBitrixContato(mensg)
-        // }
+        // VerificarTelefone(msgs)
+        let mensg = await sendListaCampanha(msgs, 1, msgs.length);
+        console.log('Aguardando o envio....', mensg.length);
+        console.log(mensg);
+        if (mensg.length > 0) {
+            backBitrixContato(mensg)
+        }
     }
 
 }
@@ -364,8 +369,8 @@ async function backBitrixContato(dados) {
 
 
 async function VerificarTelefone(numero){
-    console.log(numero);
- for(tel in numero){
-    console.log(validator(numero[tel]));
+    for(tel in numero){
+     console.log(numero[tel].telefone);
+    // console.log(validator(numero[tel].telefone));
  }
 }
