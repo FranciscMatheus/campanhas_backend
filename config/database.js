@@ -14,6 +14,18 @@ class database {
             }
         )
     }
+    campanhas() {
+        return new Sequelize(
+            config.get('campanhas.database'),
+            config.get('campanhas.user'),
+            config.get('campanhas.password'),
+            {
+                host: config.get('campanhas.host'),
+                port: config.get('campanhas.port'),
+                dialect: 'postgres'
+            }
+        )
+    }
 
 }
 

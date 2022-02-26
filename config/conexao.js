@@ -1,8 +1,10 @@
+
 const database = require('./database');
 
 
 const bancos = {
-    diamantes: database.diamantes()
+    diamantes: database.diamantes(),
+    campanhas: database.campanhas()
    
 }
 

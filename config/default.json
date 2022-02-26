@@ -8,5 +8,12 @@
     },
     "api":{
         "porta":3000
+    },
+    "campanhas": {
+        "host":"diamantesl.com",
+        "user":"campanhas",
+        "password":"b%D)j8Ns",
+        "database":"campanhas",
+        "port":"5432"
     }
 }
