@@ -8,11 +8,15 @@ const axios = require('axios');
 var fs = require('fs');
 const validator = require('validar-telefone');
 const cliProgress = require('cli-progress');
-const { NULL } = require('mysql/lib/protocol/constants/types');
 
 
 exports.appteste = async(req,res,next)=>{
-    const cpf = identificador('06041499307'+'');
+    // const tel = ["87988693177","65999433535","82993962495","13982069516","88988451267","98986022986","95991112963","89999820805"]
+    let num = '8892208124'
+    
+    let num2 = formataTel55(padraoTel(num));
+
+    console.log(num2);
 }
 
 exports.appcampanhasBitrixWhats = async (req, res, next) => {
@@ -23,7 +27,6 @@ exports.appcampanhasBitrixWhats = async (req, res, next) => {
     const wpp_tempo_cadastro_1_5_7_10_15 = await inicioDao.tempo_cadastro_1_5_7_10_15();
     res.status(200).send();
     await new Promise(r => setTimeout(r, 1000));
-
 
     for (let i = 0; i < wpp_primeira_compra.length; i++) {
         const cli = {
@@ -95,7 +98,7 @@ exports.appcampanhasSms = async (req, res, next) => {
         const cli = {
             cpf: wpp_teledigitalSMS[i].cpf.trim(),
             campanha: wpp_teledigitalSMS[i].campanha,
-            tel: padraoTel(wpp_teledigitalSMS[i].tel.trim()),
+            tel: padraoTelSMS(wpp_teledigitalSMS[i].tel.trim()),
             msg: 'Ficamos muito felizes por você escolher a Diamantes como sua parceira! Gostariamos de saber sua opiniao sobre nosso atendimento: bit.ly/3G0nQ6Q'
         }
         msgs.push(cli)
@@ -149,7 +152,7 @@ exports.appcampanhasLojasSms = async(req,res,next)=>{
             codigo:wpp_lojasSMS[i].cod_pessoa.trim().replace(/([^0-9])/g),
             cpf: wpp_lojasSMS[i].cpf.trim(),
             campanha: wpp_lojasSMS[i].campanha,
-            tel: padraoTel(wpp_lojasSMS[i].tel.trim()),
+            tel: padraoTelSMS(wpp_lojasSMS[i].tel.trim()),
             msg: 'Ficamos muito felizes por você escolher a Diamantes como sua parceira! Gostariamos de saber sua opiniao sobre nosso atendimento: bit.ly/3G0nQ6Q'
         }
         msgs.push(cli)
@@ -173,8 +176,8 @@ exports.appcampanhasLojasSms = async(req,res,next)=>{
 
 //Verificar se o telefone está com o 9 ou sem o 9
 function padraoTel(tel) {
-    if(tel == NULL || tel == undefined){
-        tel ='88992208124'
+    if(tel == 'null' || tel == undefined){
+        tel ='8892208124'
 
         return tel
     }
@@ -207,6 +210,11 @@ function padraoTel(tel) {
 
     tel = ddd + tel;
 
+    if (tel.length == 11) {
+        tel = tel.substring(3, tel.length)
+        tel = ddd + tel
+    }
+
     return tel;
 }
 //Formata o telefone para receber o +55
@@ -231,9 +239,9 @@ function formataTel55(num) {
 
     if (tel.substring(0, 1) === '0') {
         tel = tel.substring(1, tel.length);
-        tel = '+55' + tel;
+        tel = '55' + tel;
     } else {
-        tel = '+55' + tel;
+        tel = '55' + tel;
     }
 
     return tel;
@@ -392,7 +400,7 @@ async function backBitrixContato(dados) {
 
         for (let i = 0; i < contatos_update.length; i++) {
             try {
-                await new Promise(r => setTimeout(r, 3000));
+                await new Promise(r => setTimeout(r, 5000));
 
                 const req2 = await axios.post('https://diamantesl.bitrix24.com.br/rest/22/hjs1n3jqhco2jkvj/crm.contact.update',
                     {
@@ -431,9 +439,10 @@ async function backBitrixContato(dados) {
 
 
 
-async function VerificarTelefone(numero) {
+function VerificarTelefone(numero) {
     for (tel in numero) {
-        console.log(validator(numero[tel].telefone == true ? null : writeLog('Salvando o log SMS LojaPesquisa', numero[tel].telefone)));
+        // console.log(numero[tel]);
+        console.log(validator(numero[tel] == true ? null :  writeLog('Salvando o log SMS LojaPesquisa', numero[tel])));
         // console.log(validator(numero[tel].telefone));
     }
 }
@@ -448,4 +457,37 @@ async function VerificarTelefone(numero) {
     }
     //console.log(arrayCpf);
     return arrayCpf;
+}
+
+function padraoTelSMS(tel) {
+
+     tel = tel.replace('(', '').replace('(', '')
+        .replace(')', '').replace(')', '')
+        .replace(' ', '').replace(' ', '')
+        .replace(' ', '').replace(' ', '')
+        .replace(' ', '').replace(' ', '')
+        .replace(' ', '').replace(' ', '')
+        .replace(' ', '').replace(' ', '')
+        .replace('-', '').replace('-', '')
+        .replace('-', '').replace('-', '')
+        .replace('*', '').replace('*', '')
+        .replace('*', '').replace('*', '')
+        .replace('+55', '')
+    if (tel.substring(0, 1) === '0') {
+        tel = tel.substring(1, tel.length);
+        tel = tel;
+    } else {
+        tel = tel;
+    }
+
+    var ddd = tel.substring(0, 2);
+    tel = tel.substring(2, tel.length);
+
+    if (tel.length == 8) {
+        tel = '9' + tel;
+    }
+
+    tel = ddd + tel;
+
+    return tel;
 }
