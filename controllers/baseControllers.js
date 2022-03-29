@@ -6,14 +6,14 @@ const SmsMsg = require('../shared/smsMsg');
 const smsMsg = new SmsMsg();
 const axios = require('axios');
 var fs = require('fs');
-const validator = require('validar-telefone');
+const telValidador = require('telefone/parse');
 const cliProgress = require('cli-progress');
 
 
-exports.appteste = async(req,res,next)=>{
+exports.appteste = async (req, res, next) => {
     // const tel = ["87988693177","65999433535","82993962495","13982069516","88988451267","98986022986","95991112963","89999820805"]
     let num = '8892208124'
-    
+
     let num2 = formataTel55(padraoTel(num));
 
     console.log(num2);
@@ -36,7 +36,7 @@ exports.appcampanhasBitrixWhats = async (req, res, next) => {
             tempo: 0,
             mensagemEnviada: 'não',
             identifier: identificador(wpp_primeira_compra[i].cpf.trim().toString())
-            
+
         };
         msgs.push(cli);
     }
@@ -95,10 +95,11 @@ exports.appcampanhasSms = async (req, res, next) => {
     res.status(200).send();
     await new Promise(r => setTimeout(r, 1000));
     for (let i = 0; i < wpp_teledigitalSMS.length; i++) {
+        let newTel = padraoTelSMS(wpp_teledigitalSMS[i].tel.trim());
         const cli = {
             cpf: wpp_teledigitalSMS[i].cpf.trim(),
             campanha: wpp_teledigitalSMS[i].campanha,
-            tel: padraoTelSMS(wpp_teledigitalSMS[i].tel.trim()),
+            tel: telValidador(newTel) == null ? false : newTel,
             msg: 'Ficamos muito felizes por você escolher a Diamantes como sua parceira! Gostariamos de saber sua opiniao sobre nosso atendimento: bit.ly/3G0nQ6Q'
         }
         msgs.push(cli)
@@ -141,25 +142,27 @@ exports.appcampanhasSms = async (req, res, next) => {
 
 }
 
-exports.appcampanhasLojasSms = async(req,res,next)=>{
+exports.appcampanhasLojasSms = async (req, res, next) => {
     console.log('Carregando SMS Lojas...');
     let msgs = [];
     const wpp_lojasSMS = await inicioDao.pesqLojaSMS();
-    res.status(200).send();
     await new Promise(r => setTimeout(r, 1000));
     for (let i = 0; i < wpp_lojasSMS.length; i++) {
+        let newEnvio = wpp_lojasSMS[i].envio == null ? 0 : wpp_lojasSMS[i].envio
+        let newTel = padraoTelSMS(wpp_lojasSMS[i].tel.trim())
         const cli = {
-            codigo:wpp_lojasSMS[i].cod_pessoa.trim().replace(/([^0-9])/g),
+            codigo: wpp_lojasSMS[i].cod_pessoa.trim().replace(/([^0-9])/g),
             cpf: wpp_lojasSMS[i].cpf.trim(),
             campanha: wpp_lojasSMS[i].campanha,
-            tel: padraoTelSMS(wpp_lojasSMS[i].tel.trim()),
-            msg: 'Ficamos muito felizes por você escolher a Diamantes como sua parceira! Gostariamos de saber sua opiniao sobre nosso atendimento: bit.ly/3G0nQ6Q'
+            tel: telValidador(newTel) == null ? false : newTel,
+            msg: 'Ficamos muito felizes por você escolher a Diamantes como sua parceira! Gostariamos de saber sua opiniao sobre nosso atendimento: bit.ly/3G0nQ6Q',
+            envio: newEnvio
         }
         msgs.push(cli)
 
     }
 
-    
+
     if (msgs.length > 0) {
         console.log('Carregando a Lista....', msgs.length);
         let mensg = await sendListaCampanha(msgs, 1, msgs.length);
@@ -169,15 +172,15 @@ exports.appcampanhasLojasSms = async(req,res,next)=>{
             writeLog('Salvando o log SMS LojaPesquisa', mensg);
             sendSMS(mensg)
         }
-
     }
+    res.status(200).send();
 }
 
 
 //Verificar se o telefone está com o 9 ou sem o 9
 function padraoTel(tel) {
-    if(tel == 'null' || tel == undefined){
-        tel ='8892208124'
+    if (tel == 'null' || tel == undefined) {
+        tel = '8892208124'
 
         return tel
     }
@@ -286,32 +289,43 @@ async function writeLog(nmarq, arq) {
 //Enviar SMS
 async function sendSMS(dest) {
     console.log('Enviando o SMS');
-    const bar = new cliProgress.SingleBar({format: 'progress [{bar}] {percentage}% | ETA: {eta}s | {value}/{total}|{msg}'}, cliProgress.Presets.shades_classic);
-    bar.start(dest.length, 0,{msg:''});
+    let telErro = []
+    const bar = new cliProgress.SingleBar({ format: 'progress [{bar}] {percentage}% | ETA: {eta}s | {value}/{total}|{msg}' }, cliProgress.Presets.shades_classic);
+    bar.start(dest.length, 0, { msg: '' });
     for (num in dest) {
-        smsMsg.send({
-            numero: dest[num].tel,
-            msg: dest[num].msg
-        }).then(res => {
-            if (!res.result) {
-                console.log("Falha ao enviar mensagem para o número  " + dest[num].tel);
-                console.log("Resultado:", res.response)
-            }
-        })
+        if (dest[num].tel != false) {
+            smsMsg.send({
+                numero: dest[num].tel,
+                msg: dest[num].msg
+            }).then(res => {
+                if (!res.result) {
+                    console.log("Falha ao enviar mensagem para o número  " + dest[num].tel);
+                    console.log("Resultado:", res.response)
+                }
+            })
 
-        if (dest[num].campanha=='Compras realizadas nas lojas') {
-            await inicioDao.insertPesqLojaSMS(dest[num]);
+            if (dest[num].campanha == 'Compras realizadas nas lojas') {
+                if (dest[num].envio > 15) {
+                    await inicioDao.updatePesqLojaSMS(dest[num].cpf);
+                } else {
+                    await inicioDao.insertPesqLojaSMS(dest[num]);
+                }
+            }
+        } else {
+            telErro.push(dest[num])
+            continue;
         }
-        bar.increment(1,{msg:''});
+        bar.increment(1, { msg: '' });
         console.log(dest[num].tel);
 
-        if (num!=(dest.length-1)) {
+        if (num != (dest.length - 1)) {
             await new Promise(r => setTimeout(r, 1000 * 12));
-        }else{
+        } else {
             break;
         }
     }
     bar.stop()
+    writeLog(`Log dos telefones errados ${dest[num].campanha}`, telErro);
     console.log('Fim do envio dos SMS');
 }
 
@@ -442,18 +456,18 @@ async function backBitrixContato(dados) {
 function VerificarTelefone(numero) {
     for (tel in numero) {
         // console.log(numero[tel]);
-        console.log(validator(numero[tel] == true ? null :  writeLog('Salvando o log SMS LojaPesquisa', numero[tel])));
+        console.log(validator(numero[tel] == true ? null : writeLog('Salvando o log SMS LojaPesquisa', numero[tel])));
         // console.log(validator(numero[tel].telefone));
     }
 }
 
 
- function identificador(cpf) {
+function identificador(cpf) {
 
-    let arrayDiam=['m','t','d','s','i','g','n','e','a','l']
+    let arrayDiam = ['m', 't', 'd', 's', 'i', 'g', 'n', 'e', 'a', 'l']
     let arrayCpf = ''
-    for (num in cpf){
-        arrayCpf+=(arrayDiam[Number(cpf[num])])
+    for (num in cpf) {
+        arrayCpf += (arrayDiam[Number(cpf[num])])
     }
     //console.log(arrayCpf);
     return arrayCpf;
@@ -461,7 +475,7 @@ function VerificarTelefone(numero) {
 
 function padraoTelSMS(tel) {
 
-     tel = tel.replace('(', '').replace('(', '')
+    tel = tel.replace('(', '').replace('(', '')
         .replace(')', '').replace(')', '')
         .replace(' ', '').replace(' ', '')
         .replace(' ', '').replace(' ', '')
