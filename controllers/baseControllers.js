@@ -155,7 +155,7 @@ exports.appcampanhasLojasSms = async (req, res, next) => {
             cpf: wpp_lojasSMS[i].cpf.trim(),
             campanha: wpp_lojasSMS[i].campanha,
             tel: telValidador(newTel) == null ? false : newTel,
-            msg: 'Ficamos muito felizes por você escolher a Diamantes como sua parceira! Gostariamos de saber sua opiniao sobre nosso atendimento: bit.ly/3G0nQ6Q',
+            msg: 'Ficamos muito felizes por você escolher a Diamantes como sua parceira! Gostariamos de saber sua opiniao sobre nosso atendimento: bit.ly/dms-pesq',
             envio: newEnvio
         }
         msgs.push(cli)
