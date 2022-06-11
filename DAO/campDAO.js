@@ -126,19 +126,20 @@ class CampDAO {
     async teledigitalSMS() {
         try {
             const resultDB = await this._pg.diamantes.query(`select * from (select
-                        --F_DIC_PES_NOME(A.CD_PESSOA) as NOME,
-                      F_DIC_PES_CPFCNPJ(A.CD_PESSOA) as cpf,
-                      'Compras realizadas no teledigital' as campanha,
-                      F_DIC_PES_TELEFONE2('002',A.CD_PESSOA,NULL) as TEL
-                      from VR_TRA_TRANSACAO A
-                      where A.CD_EMPRESA = 1
-                      and A.tp_situacao = '4'
-                      and A.tp_operacao = 'S'
-                      and A.tp_modalidade in ('4','8')
-                      and A.DT_TRANSACAO = CURRENT_DATE-1
-                      and A.CD_PESSOA not in (select crm.cd_cliente  from cli_rec_men crm where rec_mensagem = false)
-                      and (select MAX(W.CD_SALDO) from VR_GER_OPERACAO W where W.CD_OPERACAO = A.CD_OPERACAO) = 34) m
-                      where M.TEL is not null`)
+                distinct A.CD_PESSOA as COD_PESSOA,
+               F_DIC_PES_NOME(A.CD_PESSOA) as NOME,
+               F_DIC_PES_CPFCNPJ(A.CD_PESSOA) as cpf,
+               'Compras realizadas no teledigital' as campanha,
+               F_DIC_PES_TELEFONE2('002',A.CD_PESSOA,NULL) as TEL
+               from VR_TRA_TRANSACAO A
+               where A.CD_EMPRESA = 1
+               and A.tp_situacao = '4'
+               and A.tp_operacao = 'S'
+               and A.tp_modalidade in ('4','8')
+               and A.DT_TRANSACAO = CURRENT_DATE-1
+               and A.CD_PESSOA not in (select crm.cd_cliente  from cli_rec_men crm where rec_mensagem = false)
+               and (select MAX(W.CD_SALDO) from VR_GER_OPERACAO W where W.CD_OPERACAO = A.CD_OPERACAO) = 34) m
+               where M.TEL is not null`)
             if (resultDB[0].length > 0) {
                 return resultDB[0]
             }
@@ -221,6 +222,19 @@ class CampDAO {
         } catch (error) {
             console.log(error);
             throw new Error("Ocorreu um erro, Select de busca id, pesquisa loja")
+        }
+    }
+
+    async insertCampanha(dados){
+        try {
+           
+            const {codigo,nome,cpf,tel,tp_camp,campanha,msg} = dados
+            
+            let res = await this._pg.diamantes.query(`INSERT INTO public.log_camp_msg(cd_cliente, ds_nome, cd_cpf_cnpj, cd_telefone, ds_tp_camp, ds_campanha, ds_msg)VALUES ($1,$2,$3,$4,$5,$6,$7)returning *`,{bind:[codigo,nome,cpf,tel,tp_camp,campanha,msg]});
+            
+        } catch (error) {
+            console.log(error);
+            throw new Error("Ocorreu um erro")
         }
     }
 }

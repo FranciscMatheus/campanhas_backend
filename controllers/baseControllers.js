@@ -1,4 +1,3 @@
-const { send, status } = require('express/lib/response');
 const sequel = require('../config/conexao');
 const InicioDao = require('../DAO/campDAO');
 const inicioDao = new InicioDao(sequel);
@@ -8,7 +7,10 @@ const axios = require('axios');
 var fs = require('fs');
 const telValidador = require('telefone/parse');
 const cliProgress = require('cli-progress');
+const cron = require('../shared/cron');
 
+
+cron.startCron()
 
 exports.appteste = async (req, res, next) => {
     // const tel = ["87988693177","65999433535","82993962495","13982069516","88988451267","98986022986","95991112963","89999820805"]
@@ -30,9 +32,12 @@ exports.appcampanhasBitrixWhats = async (req, res, next) => {
 
     for (let i = 0; i < wpp_primeira_compra.length; i++) {
         const cli = {
+            codigo:'',
+            nome:'',
             cpf: wpp_primeira_compra[i].cpf.trim(),
-            campanha: wpp_primeira_compra[i].campanha,
             telefone: formataTel55(padraoTel(wpp_primeira_compra[i].telefone)),
+            tp_camp:'WhatsApp',
+            campanha: wpp_primeira_compra[i].campanha,
             tempo: 0,
             mensagemEnviada: 'não',
             identifier: identificador(wpp_primeira_compra[i].cpf.trim().toString())
@@ -92,14 +97,17 @@ exports.appcampanhasSms = async (req, res, next) => {
     console.log('Carregando SMS TeleDigital...');
     let msgs = [];
     const wpp_teledigitalSMS = await inicioDao.teledigitalSMS();
-    res.status(200).send();
+    // res.status(200).send();
     await new Promise(r => setTimeout(r, 1000));
     for (let i = 0; i < wpp_teledigitalSMS.length; i++) {
         let newTel = padraoTelSMS(wpp_teledigitalSMS[i].tel.trim());
         const cli = {
+            codigo: wpp_teledigitalSMS[i].cod_pessoa.trim().replace(/([^0-9])/g),
+            nome:wpp_teledigitalSMS[i].nome,
             cpf: wpp_teledigitalSMS[i].cpf.trim(),
-            campanha: wpp_teledigitalSMS[i].campanha,
             tel: telValidador(newTel) == null ? false : newTel,
+            tp_camp:'SMS',
+            campanha: wpp_teledigitalSMS[i].campanha,
             msg: 'Ficamos muito felizes por você escolher a Diamantes como sua parceira! Gostariamos de saber sua opiniao sobre nosso atendimento: bit.ly/3G0nQ6Q'
         }
         msgs.push(cli)
@@ -150,15 +158,24 @@ exports.appcampanhasLojasSms = async (req, res, next) => {
     for (let i = 0; i < wpp_lojasSMS.length; i++) {
         let newEnvio = wpp_lojasSMS[i].envio == null ? 0 : wpp_lojasSMS[i].envio
         let newTel = padraoTelSMS(wpp_lojasSMS[i].tel.trim())
-        const cli = {
-            codigo: wpp_lojasSMS[i].cod_pessoa.trim().replace(/([^0-9])/g),
-            cpf: wpp_lojasSMS[i].cpf.trim(),
-            campanha: wpp_lojasSMS[i].campanha,
-            tel: telValidador(newTel) == null ? false : newTel,
-            msg: 'Ficamos muito felizes por você escolher a Diamantes como sua parceira! Gostariamos de saber sua opiniao sobre nosso atendimento: bit.ly/dms-pesq',
-            envio: newEnvio
+        let newCpf = wpp_lojasSMS[i].cpf == null ? 0 : wpp_lojasSMS[i].cpf.trim() 
+        if (newCpf != 0) {
+            const cli = {
+                codigo: wpp_lojasSMS[i].cod_pessoa.trim().replace(/([^0-9])/g),
+                nome:wpp_lojasSMS[i].nome,
+                cpf: newCpf,
+                tel: telValidador(newTel) == null ? false : newTel,
+                tp_camp:'SMS',
+                campanha: wpp_lojasSMS[i].campanha,
+                msg: 'Ficamos muito felizes por você escolher a Diamantes como sua parceira! Gostariamos de saber sua opiniao sobre nosso atendimento: https://bit.ly/dms-2',
+                envio: newEnvio
+            }
+            msgs.push(cli)
+        } else {
+            console.log('passei por aqui ');
+            continue
         }
-        msgs.push(cli)
+        
 
     }
 
@@ -173,7 +190,7 @@ exports.appcampanhasLojasSms = async (req, res, next) => {
             sendSMS(mensg)
         }
     }
-    res.status(200).send();
+    // res.status(200).send();
 }
 
 
@@ -304,6 +321,8 @@ async function sendSMS(dest) {
                 }
             })
 
+            await inicioDao.insertCampanha(dest[num])
+
             if (dest[num].campanha == 'Compras realizadas nas lojas') {
                 if (dest[num].envio > 15) {
                     await inicioDao.updatePesqLojaSMS(dest[num].cpf);
@@ -313,6 +332,7 @@ async function sendSMS(dest) {
             }
         } else {
             telErro.push(dest[num])
+            console.log(telErro);
             continue;
         }
         bar.increment(1, { msg: '' });
@@ -325,7 +345,9 @@ async function sendSMS(dest) {
         }
     }
     bar.stop()
-    writeLog(`Log dos telefones errados ${dest[num].campanha}`, telErro);
+    if (telErro != undefined) {
+        writeLog(`Log dos telefones errados ${dest[num].campanha}`, telErro);
+    }
     console.log('Fim do envio dos SMS');
 }
 
